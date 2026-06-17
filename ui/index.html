@@ -205,8 +205,9 @@
       </div>
 
       <div class="info-text">
-        The Teams Bot lets you chat with Microsoft Scout from the Microsoft Teams app on any device.
-        Messages are relayed through the cloud to your running Scout APIM Harness instance.
+        The Teams Bot lets you chat with Microsoft Scout from the Microsoft Teams app on any device — phone, tablet, or web browser.
+          Messages are relayed through a cloud server to your running Scout desktop instance, which processes them with full access to your tools and skills.
+          Scout desktop must be running and connected for Teams messages to be answered.
       </div>
     </div>
 
@@ -382,8 +383,13 @@
 
     async function downloadManifest() {
       if (isBrowser) {
-        // In browser mode, serve the manifest zip from the UI server
-        window.open('/teams-manifest/manifest.json', '_blank');
+        // In browser mode, trigger a direct zip download via a temporary anchor element
+        const a = document.createElement('a');
+        a.href = '/ui/scout-bot.zip';
+        a.download = 'scout-bot.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         return;
       }
       const result = await window.apimAPI.manifest.download();
