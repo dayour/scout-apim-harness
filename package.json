@@ -41,13 +41,12 @@
           "target": "appx",
           "arch": ["x64"]
         }
-      ],
-      "publisherName": "CN=Microsoft Corporation",
-      "identityName": "Microsoft.ScoutAPIM"
+      ]
     },
     "appx": {
       "backgroundColor": "#6366F1",
       "displayName": "Scout APIM Harness",
+      "identityName": "ScoutAPIMHarness",
       "publisher": "CN=Microsoft Corporation",
       "publisherDisplayName": "Microsoft Corporation"
     }
