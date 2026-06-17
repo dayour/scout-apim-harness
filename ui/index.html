@@ -231,9 +231,42 @@
   </div>
 
   <script>
+    // Browser-fallback mode: if window.apimAPI is not available (running in a browser,
+    // not inside Electron), use direct HTTP fetch calls to the relay REST API.
+    const isBrowser = typeof window.apimAPI === 'undefined';
+    // In browser mode, use the UI server's proxy at /relay/* to avoid CORS and firewall issues.
+    // The UI server (port 9090) proxies to the relay (port 3978) internally.
+    const RELAY_HTTP = isBrowser ? '/relay' : null;
+
     let relayStatus = { connected: false };
+    let relayRunning = false; // browser-mode: is our local relay process up?
 
     async function loadConfig() {
+      if (isBrowser) {
+        // In browser mode pull what we can from the healthz endpoint
+        try {
+          const r = await fetch(`${RELAY_HTTP}/healthz`);
+          if (r.ok) {
+            const data = await r.json();
+            document.getElementById('configGrid').innerHTML = `
+              <div class="config-label">Relay Host:</div>
+              <div class="config-value">${window.location.hostname}</div>
+              <div class="config-label">HTTP Port:</div>
+              <div class="config-value">${data.httpPort ?? 3978}</div>
+              <div class="config-label">WebSocket Port:</div>
+              <div class="config-value">${data.wsPort ?? 8765}</div>
+              <div class="config-label">Mode:</div>
+              <div class="config-value">Browser (direct REST)</div>
+            `;
+          }
+        } catch (_) {
+          document.getElementById('configGrid').innerHTML = `
+            <div class="config-label">Mode:</div>
+            <div class="config-value">Browser (relay offline)</div>
+          `;
+        }
+        return;
+      }
       const result = await window.apimAPI.config.get();
       if (result.success) {
         const { config } = result;
@@ -253,33 +286,79 @@
     }
 
     async function refreshStatus() {
+      if (isBrowser) {
+        try {
+          const r = await fetch(`${RELAY_HTTP}/healthz`);
+          if (r.ok) {
+            const data = await r.json();
+            relayRunning = true;
+            updateUI(true, data.desktopConnected);
+          } else {
+            relayRunning = false;
+            updateUI(false, false);
+          }
+        } catch (_) {
+          relayRunning = false;
+          updateUI(false, false);
+        }
+        return;
+      }
       const result = await window.apimAPI.relay.getStatus();
       if (result.success) {
         updateUI(result.connected);
       }
     }
 
-    function updateUI(connected) {
+    function updateUI(relayUp, desktopConnected) {
+      // In Electron mode, relayUp is the single "connected" bool; desktopConnected unused
+      const connected = isBrowser ? relayUp : relayUp;
       relayStatus.connected = connected;
       const icon = document.getElementById('statusIcon');
       const title = document.getElementById('statusTitle');
       const subtitle = document.getElementById('statusSubtitle');
       const btn = document.getElementById('connectBtn');
 
-      if (connected) {
-        icon.className = 'status-icon connected';
-        title.textContent = 'Connected';
-        subtitle.textContent = 'Relay connected - Teams messages are forwarded to Microsoft Scout';
-        btn.textContent = 'Disconnect';
+      if (isBrowser) {
+        if (relayUp && desktopConnected) {
+          icon.className = 'status-icon connected';
+          title.textContent = 'Connected';
+          subtitle.textContent = 'Relay running - Scout desktop client is connected';
+          btn.textContent = 'Relay Online';
+          btn.disabled = true;
+        } else if (relayUp) {
+          icon.className = 'status-icon connected';
+          title.textContent = 'Relay Online';
+          subtitle.textContent = 'HTTP relay running on :3978, waiting for Scout desktop connection on :8765';
+          btn.textContent = 'Relay Online';
+          btn.disabled = true;
+        } else {
+          icon.className = 'status-icon disconnected';
+          title.textContent = 'Relay Offline';
+          subtitle.textContent = 'Start the relay server to receive Teams messages';
+          btn.textContent = 'Connect';
+          btn.disabled = false;
+        }
       } else {
-        icon.className = 'status-icon disconnected';
-        title.textContent = 'Disconnected';
-        subtitle.textContent = 'Connect to receive Teams messages on this device';
-        btn.textContent = 'Connect';
+        if (connected) {
+          icon.className = 'status-icon connected';
+          title.textContent = 'Connected';
+          subtitle.textContent = 'Relay connected - Teams messages are forwarded to Microsoft Scout';
+          btn.textContent = 'Disconnect';
+        } else {
+          icon.className = 'status-icon disconnected';
+          title.textContent = 'Disconnected';
+          subtitle.textContent = 'Connect to receive Teams messages on this device';
+          btn.textContent = 'Connect';
+        }
+        btn.disabled = false;
       }
     }
 
     async function toggleConnection() {
+      if (isBrowser) {
+        showError('Use the Electron app to control the relay, or start it via: npm start');
+        return;
+      }
       const btn = document.getElementById('connectBtn');
       btn.disabled = true;
       document.getElementById('errorBanner').style.display = 'none';
@@ -302,6 +381,11 @@
     }
 
     async function downloadManifest() {
+      if (isBrowser) {
+        // In browser mode, serve the manifest zip from the UI server
+        window.open('/teams-manifest/manifest.json', '_blank');
+        return;
+      }
       const result = await window.apimAPI.manifest.download();
       if (result.success) {
         document.getElementById('manifestSuccess').textContent = `Saved to ${result.path}`;
@@ -318,17 +402,25 @@
     }
 
     // Initialize
+    if (isBrowser) {
+      // Show browser mode indicator
+      document.title = 'Scout APIM Harness (Browser Mode)';
+      const header = document.querySelector('h1');
+      if (header) header.textContent += ' — Browser Mode';
+    }
     loadConfig();
     refreshStatus();
     setInterval(refreshStatus, 5000);
 
-    // Listen for status updates from main process
-    window.apimAPI.relay.onStatusChange((data) => {
-      if (data.error) {
-        showError(data.error);
-      }
-      updateUI(data.connected);
-    });
+    if (!isBrowser) {
+      // Listen for status updates from main process (Electron only)
+      window.apimAPI.relay.onStatusChange((data) => {
+        if (data.error) {
+          showError(data.error);
+        }
+        updateUI(data.connected);
+      });
+    }
   </script>
 </body>
 </html>
