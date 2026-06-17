@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scout APIM Harness</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1e1e1e;
+      color: #e0e0e0;
+      padding: 24px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .subtitle {
+      color: #888;
+      margin-bottom: 32px;
+    }
+
+    .section {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .status-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .status-icon.connected { color: #4ade80; }
+    .status-icon.connecting { color: #fbbf24; }
+    .status-icon.disconnected { color: #888; }
+    .status-icon.error { color: #ef4444; }
+
+    .status-content {
+      flex: 1;
+    }
+
+    .status-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .status-subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    button {
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #4f46e5;
+    }
+
+    button:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #3a3a3a;
+      border: 1px solid #4a4a4a;
+    }
+
+    button.secondary:hover {
+      background: #444;
+    }
+
+    .error-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid #ef4444;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      color: #ef4444;
+      font-size: 13px;
+    }
+
+    .info-text {
+      font-size: 14px;
+      color: #a0a0a0;
+      margin-bottom: 12px;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .config-label {
+      color: #888;
+    }
+
+    .config-value {
+      color: #e0e0e0;
+      font-family: 'Consolas', monospace;
+    }
+
+    ol {
+      padding-left: 24px;
+      margin-top: 12px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    code {
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+    }
+
+    .success-message {
+      color: #4ade80;
+      font-size: 12px;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Scout APIM Harness</h1>
+    <div class="subtitle">Microsoft Scout Teams Bot Integration Service</div>
+
+    <!-- Configuration Section -->
+    <div class="section">
+      <div class="section-title">Configuration</div>
+      <div class="config-grid" id="configGrid">
+        <div class="config-label">Loading...</div>
+        <div class="config-value"></div>
+      </div>
+    </div>
+
+    <!-- Teams Relay Section -->
+    <div class="section">
+      <div class="section-title">Teams Bot Relay</div>
+      
+      <div id="errorBanner" class="error-banner" style="display: none;"></div>
+
+      <div class="status-card">
+        <div class="status-icon disconnected" id="statusIcon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <div class="status-content">
+          <div class="status-title" id="statusTitle">Disconnected</div>
+          <div class="status-subtitle" id="statusSubtitle">Connect to receive Teams messages on this device</div>
+        </div>
+        <button id="connectBtn" onclick="toggleConnection()">Connect</button>
+      </div>
+
+      <div class="info-text">
+        The Teams Bot lets you chat with Microsoft Scout from the Microsoft Teams app on any device.
+        Messages are relayed through the cloud to your running Scout APIM Harness instance.
+      </div>
+    </div>
+
+    <!-- Teams Setup Section -->
+    <div class="section">
+      <div class="section-title">Teams Bot Setup</div>
+      
+      <ol>
+        <li>
+          <button class="secondary" onclick="downloadManifest()">Download scout-bot.zip</button>
+          <span id="manifestSuccess" class="success-message" style="display: none;"></span>
+        </li>
+        <li>From the Teams sidebar, select <strong>Apps</strong> > <strong>Manage your apps</strong> > <strong>Upload an app</strong>.</li>
+        <li>Select <strong>Upload a custom app</strong>.</li>
+        <li>Select the app package .zip file, then select <strong>Add</strong>.</li>
+      </ol>
+
+      <div class="info-text" style="margin-top: 16px;">
+        Microsoft Scout appears in your Teams chat list on all your devices.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let relayStatus = { connected: false };
+
+    async function loadConfig() {
+      const result = await window.apimAPI.config.get();
+      if (result.success) {
+        const { config } = result;
+        document.getElementById('configGrid').innerHTML = `
+          <div class="config-label">Tenant ID:</div>
+          <div class="config-value">${config.tenantId}</div>
+          <div class="config-label">Bot App ID:</div>
+          <div class="config-value">${config.botAppId}</div>
+          <div class="config-label">Relay Host:</div>
+          <div class="config-value">${config.relayHost}:${config.wsPort}</div>
+          <div class="config-label">HTTP Port:</div>
+          <div class="config-value">${config.httpPort}</div>
+          <div class="config-label">Bot Password:</div>
+          <div class="config-value">${config.hasPassword ? 'Configured' : 'NOT SET (required)'}</div>
+        `;
+      }
+    }
+
+    async function refreshStatus() {
+      const result = await window.apimAPI.relay.getStatus();
+      if (result.success) {
+        updateUI(result.connected);
+      }
+    }
+
+    function updateUI(connected) {
+      relayStatus.connected = connected;
+      const icon = document.getElementById('statusIcon');
+      const title = document.getElementById('statusTitle');
+      const subtitle = document.getElementById('statusSubtitle');
+      const btn = document.getElementById('connectBtn');
+
+      if (connected) {
+        icon.className = 'status-icon connected';
+        title.textContent = 'Connected';
+        subtitle.textContent = 'Relay connected - Teams messages are forwarded to Microsoft Scout';
+        btn.textContent = 'Disconnect';
+      } else {
+        icon.className = 'status-icon disconnected';
+        title.textContent = 'Disconnected';
+        subtitle.textContent = 'Connect to receive Teams messages on this device';
+        btn.textContent = 'Connect';
+      }
+    }
+
+    async function toggleConnection() {
+      const btn = document.getElementById('connectBtn');
+      btn.disabled = true;
+      document.getElementById('errorBanner').style.display = 'none';
+
+      try {
+        const result = relayStatus.connected
+          ? await window.apimAPI.relay.disconnect()
+          : await window.apimAPI.relay.connect();
+
+        if (!result.success) {
+          showError(result.error);
+        } else {
+          await refreshStatus();
+        }
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function downloadManifest() {
+      const result = await window.apimAPI.manifest.download();
+      if (result.success) {
+        document.getElementById('manifestSuccess').textContent = `Saved to ${result.path}`;
+        document.getElementById('manifestSuccess').style.display = 'inline';
+      } else if (result.error && result.error !== 'Save canceled') {
+        showError(result.error);
+      }
+    }
+
+    function showError(message) {
+      const banner = document.getElementById('errorBanner');
+      banner.textContent = message;
+      banner.style.display = 'block';
+    }
+
+    // Initialize
+    loadConfig();
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+
+    // Listen for status updates from main process
+    window.apimAPI.relay.onStatusChange((data) => {
+      if (data.error) {
+        showError(data.error);
+      }
+      updateUI(data.connected);
+    });
+  </script>
+</body>
+</html>

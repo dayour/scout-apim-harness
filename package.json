@@ -1,0 +1,55 @@
+{
+  "name": "scout-apim-harness",
+  "version": "1.0.0",
+  "description": "Microsoft Scout Teams Bot integration as a standalone APIM harness service",
+  "main": "electron/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"npm run relay:dev\" \"electron .\"",
+    "relay:dev": "cd relay && npm run dev",
+    "relay:build": "cd relay && npm run build",
+    "build": "npm run relay:build && electron-builder",
+    "postinstall": "cd relay && npm install"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "electron-store": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "concurrently": "^9.1.0",
+    "electron": "^33.3.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.microsoft.scout.apim",
+    "productName": "Scout APIM Harness",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "ui/**/*",
+      "relay/dist/**/*",
+      "relay/package.json",
+      "relay/node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "appx",
+          "arch": ["x64"]
+        }
+      ],
+      "publisherName": "CN=Microsoft Corporation",
+      "identityName": "Microsoft.ScoutAPIM"
+    },
+    "appx": {
+      "backgroundColor": "#6366F1",
+      "displayName": "Scout APIM Harness",
+      "publisher": "CN=Microsoft Corporation",
+      "publisherDisplayName": "Microsoft Corporation"
+    }
+  }
+}

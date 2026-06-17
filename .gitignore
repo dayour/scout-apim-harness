@@ -1,0 +1,18 @@
+# .env (ignored - add your secrets here)
+.env
+
+# Node modules
+node_modules/
+relay/node_modules/
+
+# Build output
+dist/
+relay/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
