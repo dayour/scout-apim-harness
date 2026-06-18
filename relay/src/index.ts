@@ -4,7 +4,7 @@
  * Entry point.  Wires:
  *   - HTTP server (PORT, default 3978) for:
  *       POST /api/messages   — Teams Bot Framework activities
- *       GET  /api/v1/clawpilot/configuration — local Loki config override
+ *       GET  /api/v1/clawpilot/configuration — relay config with production Loki URL
  *       GET  /healthz        — readiness probe
  *   - WebSocket server (WS_PORT, default 8765) — Scout desktop relay
  *
@@ -15,8 +15,8 @@
  * Optional:
  *   PORT             — HTTP listen port (default 3978)
  *   WS_PORT          — WebSocket listen port (default 8765)
- *   HOST             — Hostname advertised in the Loki config response (default: detected)
- *   RELAY_WS_URL     — Full ws:// URL to advertise (overrides HOST + WS_PORT construction)
+ *   RELAY_WS_URL     — Full ws:// or wss:// Teams relay URL to advertise
+ *   LOKI_URL         — Loki base URL to advertise for Prepare/Horizon GraphQL
  */
 
 import http from "node:http";
@@ -34,10 +34,11 @@ const BOT_APP_ID = process.env["BOT_APP_ID"] ?? "";
 const BOT_APP_PASSWORD = process.env["BOT_APP_PASSWORD"] ?? "";
 const PORT = Number(process.env["PORT"] ?? 3978);
 const WS_PORT = Number(process.env["WS_PORT"] ?? 8765);
-const HOST = process.env["HOST"] ?? "localhost";
+const DEFAULT_RELAY_WS_URL = "wss://relay.example.com/ws";
+const DEFAULT_LOKI_URL = "https://loki.example.com";
 
-const RELAY_WS_URL =
-  process.env["RELAY_WS_URL"] ?? `ws://${HOST}:${WS_PORT}/ws`;
+const RELAY_WS_URL = process.env["RELAY_WS_URL"] ?? DEFAULT_RELAY_WS_URL;
+const LOKI_URL = (process.env["LOKI_URL"] ?? DEFAULT_LOKI_URL).replace(/\/+$/, "");
 
 if (!BOT_APP_ID || !BOT_APP_PASSWORD) {
   log.warn(
@@ -64,12 +65,12 @@ const bot = new ScoutBot(relay);
 
 // --- HTTP server ---------------------------------------------------------
 const server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
-  // Loki config override endpoint — no auth required.
-  // Scout calls this when CLAWPILOT_LOKI_BASE_URL_OVERRIDE is set.
+  // Relay config endpoint — no auth required. It advertises the Teams relay
+  // URL while keeping Loki GraphQL pointed at production.
   if (req.method === "GET" && req.url === "/api/v1/clawpilot/configuration") {
     const body = buildLokiResponse({
+      lokiUrl: LOKI_URL,
       relayWsUrl: RELAY_WS_URL,
-      host: req.headers.host ?? `${HOST}:${PORT}`,
     });
     res.writeHead(200, {
       "Content-Type": "application/json",
@@ -121,11 +122,12 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
 server.listen(PORT, () => {
   log.info(`HTTP server listening on port ${PORT}`);
   log.info(`  GET  /healthz                          — readiness probe`);
-  log.info(`  GET  /api/v1/clawpilot/configuration   — local Loki override`);
+  log.info(`  GET  /api/v1/clawpilot/configuration   — relay config`);
   log.info(`  POST /api/messages                     — Teams Bot Framework`);
   log.info(`Relay WS URL advertised: ${RELAY_WS_URL}`);
+  log.info(`Loki URL advertised for Prepare/Horizon: ${LOKI_URL}`);
   log.info("");
-  log.info("Enable Integrations tab — either:");
-  log.info(`  A) env var on target: CLAWPILOT_LOKI_BASE_URL_OVERRIDE=http://<host>:${PORT}`);
-  log.info("  B) run: node seed-cache.mjs --ws-url " + RELAY_WS_URL);
+  log.info("Enable Integrations tab without routing Prepare through APIM:");
+  log.info("  Preferred: run node seed-cache.mjs --ws-url " + RELAY_WS_URL);
+  log.info("  If a runtime reads this config endpoint, keep lokiUrl on production Loki.");
 });

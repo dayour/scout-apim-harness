@@ -17,7 +17,7 @@ Scout APIM Harness (Electron + Node.js)
 1. **Relay Server** — Runs `m-relay` as a child process:
    - WebSocket relay server (port 8765) for Scout desktop connections
    - Bot Framework adapter (port 3978) for Teams messages
-   - Local Loki configuration endpoint
+   - Relay configuration endpoint that keeps Prepare/Horizon on production Loki
 
 2. **Simple UI** — Single-page HTML interface:
    - Connect/Disconnect controls
@@ -28,6 +28,8 @@ Scout APIM Harness (Electron + Node.js)
 3. **Configuration** — Environment variables via .env file:
    - Tenant ID, Bot App ID/Password
    - Relay host (scout-host IP or hostname)
+   - Canonical relay WebSocket URL (`wss://relay.example.com/ws`)
+   - Production Loki URL for Prepare/Horizon (`https://loki.example.com`)
    - HTTP and WebSocket ports
 
 ## Prerequisites

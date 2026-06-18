@@ -1,10 +1,10 @@
 # m-relay
 
-Teams relay WebSocket server and local Loki configuration endpoint for Microsoft Scout (m-copilot).
+Teams relay WebSocket server and relay configuration endpoint for Microsoft Scout (m-copilot).
 
 ## What it does
 
-Scout desktop connects to this server over WebSocket. Teams messages are forwarded to the connected Scout instance and responses are relayed back. A local HTTP endpoint at `/api/v1/clawpilot/configuration` serves the Loki config (including `teamsRelayConfig.wsUrl`) so the Integrations tab Teams Bot section activates without a Microsoft 1P Loki token.
+Scout desktop connects to the configured relay WebSocket. Teams messages are forwarded to the connected Scout instance and responses are relayed back. The HTTP endpoint at `/api/v1/clawpilot/configuration` can serve `teamsRelayConfig.wsUrl`, but it must keep `lokiUrl` pointed at production Loki so Prepare/Horizon GraphQL does not hit APIM and return HTTP 404.
 
 ## Architecture
 
@@ -30,17 +30,18 @@ Teams channel  ->  Bot Framework adapter  ->  ScoutBot (bot.ts)
 |-----------------------|-----------------------------|-----------------------------------------------------------|
 | `BOT_APP_ID`          | (required)                  | Azure Bot / Teams app registration client ID              |
 | `BOT_APP_PASSWORD`    | (required)                  | Azure Bot client secret                                   |
-| `PORT`                | `3978`                      | HTTP listen port (Teams messages + Loki config endpoint)  |
+| `PORT`                | `3978`                      | HTTP listen port (Teams messages + config endpoint)       |
 | `WS_PORT`             | `8765`                      | WebSocket relay port for Scout desktop                    |
-| `HOST`                | `localhost`                 | Hostname advertised in Loki config response               |
-| `RELAY_WS_URL`        | `ws://<HOST>:<WS_PORT>/ws`  | Full WS URL advertised to Scout clients                   |
+| `RELAY_WS_URL`        | `wss://relay.example.com/ws` | Full WS URL advertised to Scout clients |
+| `LOKI_URL`            | `https://loki.example.com` | Loki URL advertised for Prepare/Horizon GraphQL       |
 
 ## Running on 192.0.2.10 (DarbotLM gateway host)
 
 ```sh
 BOT_APP_ID=00000000-0000-0000-0000-000000000000 \
 BOT_APP_PASSWORD=<secret-from-azure-bot> \
-HOST=192.0.2.10 \
+RELAY_WS_URL=wss://relay.example.com/ws \
+LOKI_URL=https://loki.example.com \
 npm start
 ```
 
@@ -58,21 +59,22 @@ Readiness probe: `GET http://192.0.2.10:3978/healthz`
 
 Run on the target machine:
 ```sh
-node seed-cache.mjs --ws-url ws://192.0.2.10:8765/ws
+node seed-cache.mjs --ws-url wss://relay.example.com/ws
 ```
 
 Or via ScoutDeployer.ps1 Phase 2 > Memory component (drops the file into the user profile).
 
-### Option B — env var override (live, reroutes all Loki calls)
+### Option B — config endpoint only (avoid for ClippyClaw native)
 
-Launch Scout with:
-```
-CLAWPILOT_LOKI_BASE_URL_OVERRIDE=http://192.0.2.10:3978
-```
+Some Scout runtimes can read `GET /api/v1/clawpilot/configuration` as a config
+source. This endpoint now returns production `lokiUrl` plus
+`settings.teamsRelayConfig.wsUrl`, so Prepare/Horizon GraphQL stays on Loki while
+Teams uses the canonical relay URL.
 
-This causes Scout to call `GET http://192.0.2.10:3978/api/v1/clawpilot/configuration` instead of the Microsoft Office Loki service. No token acquisition occurs. The response includes `teamsRelayConfig.wsUrl` which activates the Teams Bot section in the Integrations panel.
-
-NOTE: In packaged Scout builds the `RELAY_URL` env var is blocked at the WebSocket level. The relay URL must come from Loki config (this endpoint or the cache file) — the env var is only respected in unpackaged/dev builds.
+Do not point `CLAWPILOT_LOKI_BASE_URL_OVERRIDE` at APIM for ClippyClaw native.
+That legacy override is configuration-only there; Horizon/Prepare GraphQL uses
+production Loki unless `CLAWPILOT_LOKI_GRAPHQL_BASE_URL_OVERRIDE` is explicitly
+set for local Loki testing.
 
 ## Teams bot setup
 

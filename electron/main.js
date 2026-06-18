@@ -7,6 +7,9 @@ const store = new Store();
 let mainWindow;
 let relayProcess = null;
 
+const CANONICAL_RELAY_WS_URL = 'wss://relay.example.com/ws';
+const PRODUCTION_LOKI_URL = 'https://loki.example.com';
+
 // Environment configuration
 const config = {
   tenantId: process.env.SCOUT_TENANT_ID || '00000000-0000-0000-0000-000000000000',
@@ -15,6 +18,8 @@ const config = {
   relayHost: process.env.SCOUT_RELAY_HOST || 'localhost',
   httpPort: process.env.SCOUT_HTTP_PORT || '3978',
   wsPort: process.env.SCOUT_WS_PORT || '8765',
+  relayWsUrl: process.env.SCOUT_RELAY_WS_URL || process.env.RELAY_WS_URL || CANONICAL_RELAY_WS_URL,
+  lokiUrl: (process.env.SCOUT_LOKI_URL || process.env.LOKI_URL || PRODUCTION_LOKI_URL).replace(/\/+$/, ''),
 };
 
 function createWindow() {
@@ -57,7 +62,8 @@ function startRelayServer() {
       HOST: config.relayHost,
       PORT: config.httpPort,
       WS_PORT: config.wsPort,
-      RELAY_WS_URL: `ws://${config.relayHost}:${config.wsPort}/ws`,
+      RELAY_WS_URL: config.relayWsUrl,
+      LOKI_URL: config.lokiUrl,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -127,7 +133,8 @@ ipcMain.handle('relay:status', async () => {
       relayHost: config.relayHost,
       httpPort: config.httpPort,
       wsPort: config.wsPort,
-      wsUrl: `ws://${config.relayHost}:${config.wsPort}/ws`,
+      wsUrl: config.relayWsUrl,
+      lokiUrl: config.lokiUrl,
     },
   };
 });
@@ -175,6 +182,8 @@ ipcMain.handle('config:get', async () => {
       relayHost: config.relayHost,
       httpPort: config.httpPort,
       wsPort: config.wsPort,
+      relayWsUrl: config.relayWsUrl,
+      lokiUrl: config.lokiUrl,
       hasPassword: !!config.botAppPassword,
     },
   };

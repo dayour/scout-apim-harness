@@ -3,11 +3,11 @@
  * m-relay/seed-cache.mjs
  *
  * Writes ~/.copilot/m-loki-cache.json on the LOCAL machine with a
- * teamsRelayConfig pointing to the m-relay server.  Scout reads this file at
- * boot via initLokiCacheFromDisk() — no Microsoft 1P Loki token required.
+ * teamsRelayConfig pointing to the canonical relay. Scout reads this file at
+ * boot via initLokiCacheFromDisk() without sending Prepare/Horizon through APIM.
  *
  * Usage (on the target Windows machine):
- *   node seed-cache.mjs [--ws-url ws://192.0.2.10:8765/ws]
+ *   node seed-cache.mjs [--ws-url wss://relay.example.com/ws]
  *
  * After running, restart Microsoft Scout.  The Integrations tab will show
  * the Teams Bot section.
@@ -20,7 +20,8 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-const DEFAULT_WS_URL = "ws://192.0.2.10:8765/ws";
+const DEFAULT_WS_URL = "wss://relay.example.com/ws";
+const DEFAULT_LOKI_URL = "https://loki.example.com";
 const DEFAULT_FLIGHTS = [
   "EnableHorizon",
   "EnableDiagnostics",
@@ -37,17 +38,19 @@ function parseArgs() {
   const wsUrl = wsUrlIdx !== -1 ? args[wsUrlIdx + 1] : DEFAULT_WS_URL;
   const oidIdx = args.indexOf("--oid");
   const oid = oidIdx !== -1 ? args[oidIdx + 1] : "00000000-0000-0000-0000-000000000000";
+  const lokiUrlIdx = args.indexOf("--loki-url");
+  const lokiUrl = lokiUrlIdx !== -1 ? args[lokiUrlIdx + 1].replace(/\/+$/, "") : DEFAULT_LOKI_URL;
   const outIdx = args.indexOf("--out");
   const out = outIdx !== -1 ? args[outIdx + 1] : null;
-  return { wsUrl, oid, out };
+  return { wsUrl, oid, lokiUrl, out };
 }
 
 async function main() {
-  const { wsUrl, oid, out } = parseArgs();
+  const { wsUrl, oid, lokiUrl, out } = parseArgs();
 
   const cache = {
-    lokiUrl: "https://loki.example.com",
-    ring: "df",
+    lokiUrl,
+    ring: "prod",
     flights: DEFAULT_FLIGHTS,
     settings: {
       teamsRelayConfig: { wsUrl },
@@ -66,6 +69,7 @@ async function main() {
   await fs.writeFile(dest, JSON.stringify(cache, null, 2), "utf8");
 
   console.log(`Wrote m-loki-cache.json -> ${dest}`);
+  console.log(`  lokiUrl = ${lokiUrl}`);
   console.log(`  teamsRelayConfig.wsUrl = ${wsUrl}`);
   console.log(`  flights: ${cache.flights.join(", ")}`);
   console.log("");
