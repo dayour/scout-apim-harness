@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scout APIM Harness</title>
+  <title>ClippyClaw Teams Bot Harness</title>
   <style>
     * {
       margin: 0;
@@ -173,8 +173,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>Scout APIM Harness</h1>
-    <div class="subtitle">Microsoft Scout Teams Bot Integration Service</div>
+    <h1>ClippyClaw Teams Bot Harness</h1>
+    <div class="subtitle">ClippyClaw Teams Bot Integration Service</div>
 
     <!-- Configuration Section -->
     <div class="section">
@@ -205,9 +205,9 @@
       </div>
 
       <div class="info-text">
-        The Teams Bot lets you chat with Microsoft Scout from the Microsoft Teams app on any device — phone, tablet, or web browser.
-          Messages are relayed through a cloud server to your running Scout desktop instance, which processes them with full access to your tools and skills.
-          Scout desktop must be running and connected for Teams messages to be answered.
+        The Teams Bot lets you chat with ClippyClaw from the Microsoft Teams app on any device - phone, tablet, or web browser.
+        Messages are relayed through a cloud server to your running ClippyClaw desktop instance, which processes them with full access to your tools and skills.
+        ClippyClaw desktop must be running and connected for Teams messages to be answered.
       </div>
     </div>
 
@@ -217,7 +217,7 @@
       
       <ol>
         <li>
-          <button class="secondary" onclick="downloadManifest()">Download scout-bot.zip</button>
+          <button class="secondary" onclick="downloadManifest()">Download clippyclaw-bot.zip</button>
           <span id="manifestSuccess" class="success-message" style="display: none;"></span>
         </li>
         <li>From the Teams sidebar, select <strong>Apps</strong> > <strong>Manage your apps</strong> > <strong>Upload an app</strong>.</li>
@@ -226,7 +226,7 @@
       </ol>
 
       <div class="info-text" style="margin-top: 16px;">
-        Microsoft Scout appears in your Teams chat list on all your devices.
+        ClippyClaw appears in your Teams chat list on all your devices.
       </div>
     </div>
   </div>
@@ -323,13 +323,13 @@
         if (relayUp && desktopConnected) {
           icon.className = 'status-icon connected';
           title.textContent = 'Connected';
-          subtitle.textContent = 'Relay running - Scout desktop client is connected';
+          subtitle.textContent = 'Relay running - ClippyClaw desktop client is connected';
           btn.textContent = 'Relay Online';
           btn.disabled = true;
         } else if (relayUp) {
           icon.className = 'status-icon connected';
           title.textContent = 'Relay Online';
-          subtitle.textContent = 'HTTP relay running on :3978, waiting for Scout desktop connection on :8765';
+          subtitle.textContent = 'HTTP relay running on :3978, waiting for ClippyClaw desktop connection on :8765';
           btn.textContent = 'Relay Online';
           btn.disabled = true;
         } else {
@@ -343,7 +343,7 @@
         if (connected) {
           icon.className = 'status-icon connected';
           title.textContent = 'Connected';
-          subtitle.textContent = 'Relay connected - Teams messages are forwarded to Microsoft Scout';
+          subtitle.textContent = 'Relay connected - Teams messages are forwarded to ClippyClaw';
           btn.textContent = 'Disconnect';
         } else {
           icon.className = 'status-icon disconnected';
@@ -385,8 +385,8 @@
       if (isBrowser) {
         // In browser mode, trigger a direct zip download via a temporary anchor element
         const a = document.createElement('a');
-        a.href = '/ui/scout-bot.zip';
-        a.download = 'scout-bot.zip';
+        a.href = '/ui/clippyclaw-bot.zip';
+        a.download = 'clippyclaw-bot.zip';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -410,7 +410,7 @@
     // Initialize
     if (isBrowser) {
       // Show browser mode indicator
-      document.title = 'Scout APIM Harness (Browser Mode)';
+      document.title = 'ClippyClaw Teams Bot Harness (Browser Mode)';
       const header = document.querySelector('h1');
       if (header) header.textContent += ' — Browser Mode';
     }

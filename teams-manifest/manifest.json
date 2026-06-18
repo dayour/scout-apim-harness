@@ -1,15 +1,15 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
-  "version": "1.1.1",
+  "version": "1.0.0",
   "id": "00000000-0000-0000-0000-000000000000",
   "name": {
-    "short": "Microsoft Scout",
-    "full": "Microsoft Scout"
+    "short": "ClippyClaw",
+    "full": "ClippyClaw AI Assistant"
   },
   "description": {
     "short": "Your AI desktop assistant, on the go",
-    "full": "Chat with your Scout AI assistant from anywhere — phone, tablet, or desktop Teams. Scout connects to your running desktop instance to give you full access to your files, browser, calendar, and more. Requires Scout desktop app running on your computer."
+    "full": "Chat with your ClippyClaw AI assistant from anywhere — phone, tablet, or desktop Teams. ClippyClaw connects to your running desktop instance to give you full access to your files, browser, calendar, and more. Requires ClippyClaw desktop app running on your computer."
   },
   "icons": {
     "color": "color.png",
@@ -38,11 +38,11 @@
             },
             {
               "title": "help",
-              "description": "Show what Scout can do"
+              "description": "Show what ClippyClaw can do"
             },
             {
               "title": "status",
-              "description": "Check if Scout desktop is connected"
+              "description": "Check if ClippyClaw desktop is connected"
             },
             {
               "title": "cancel",
@@ -53,5 +53,6 @@
       ]
     }
   ],
-  "permissions": ["identity", "messageTeamMembers"]
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["relay.example.com"]
 }
