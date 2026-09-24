@@ -3,25 +3,23 @@
  * m-relay/seed-cache.mjs
  *
  * Writes ~/.copilot/m-loki-cache.json on the LOCAL machine with a
- * teamsRelayConfig pointing to the canonical relay. Scout reads this file at
+ * teamsRelayConfig pointing to the configured relay. Scout reads this file at
  * boot via initLokiCacheFromDisk() without sending Prepare/Horizon through APIM.
  *
  * Usage (on the target Windows machine):
- *   node seed-cache.mjs [--ws-url wss://relay.example.com/ws]
+ *   node seed-cache.mjs --ws-url wss://relay.example.com/ws \
+ *     --loki-url https://loki.example.com
  *
  * After running, restart Microsoft Scout.  The Integrations tab will show
  * the Teams Bot section.
  *
- * Schema source: C:\path\to\scout\common\loki-cache-schema.ts
- *   LokiCacheFileSchema = LokiConfigSchema + { oid, fetchedAt, schemaVersion:1 }
+ * Schema: LokiConfig plus { oid, fetchedAt, schemaVersion: 1 }.
  */
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-const DEFAULT_WS_URL = "wss://relay.example.com/ws";
-const DEFAULT_LOKI_URL = "https://loki.example.com";
 const DEFAULT_FLIGHTS = [
   "EnableHorizon",
   "EnableDiagnostics",
@@ -34,15 +32,40 @@ const DEFAULT_FLIGHTS = [
 
 function parseArgs() {
   const args = process.argv.slice(2);
+  if (args.includes("--help") || args.includes("-h")) {
+    console.log("Usage: node seed-cache.mjs --ws-url <ws-url> --loki-url <http-url> [--oid <uuid>] [--out <path>]");
+    process.exit(0);
+  }
   const wsUrlIdx = args.indexOf("--ws-url");
-  const wsUrl = wsUrlIdx !== -1 ? args[wsUrlIdx + 1] : DEFAULT_WS_URL;
+  const wsUrl = wsUrlIdx !== -1 ? args[wsUrlIdx + 1] : process.env.SCOUT_RELAY_WS_URL ?? process.env.RELAY_WS_URL;
   const oidIdx = args.indexOf("--oid");
   const oid = oidIdx !== -1 ? args[oidIdx + 1] : "00000000-0000-0000-0000-000000000000";
   const lokiUrlIdx = args.indexOf("--loki-url");
-  const lokiUrl = lokiUrlIdx !== -1 ? args[lokiUrlIdx + 1].replace(/\/+$/, "") : DEFAULT_LOKI_URL;
+  const lokiUrl = lokiUrlIdx !== -1 ? args[lokiUrlIdx + 1] : process.env.SCOUT_LOKI_URL ?? process.env.LOKI_URL;
   const outIdx = args.indexOf("--out");
   const out = outIdx !== -1 ? args[outIdx + 1] : null;
-  return { wsUrl, oid, lokiUrl, out };
+  return {
+    wsUrl: requiredUrl("relay WebSocket URL", wsUrl, ["ws:", "wss:"]),
+    oid,
+    lokiUrl: requiredUrl("Loki URL", lokiUrl, ["http:", "https:"]).replace(/\/+$/, ""),
+    out,
+  };
+}
+
+function requiredUrl(label, value, protocols) {
+  if (!value) {
+    throw new Error(`${label} is required; pass the command option or set the matching environment variable`);
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${label} must be an absolute URL`);
+  }
+  if (!protocols.includes(url.protocol)) {
+    throw new Error(`${label} must use ${protocols.join(" or ")}`);
+  }
+  return value;
 }
 
 async function main() {
@@ -60,8 +83,7 @@ async function main() {
     schemaVersion: 1,
   };
 
-  // Production fallback path used by getCachePath() in electron/loki/client.ts:
-  //   homedir + "/.copilot/m-loki-cache.json"
+  // Default path used by Scout's local Loki cache loader.
   const defaultOut = path.join(os.homedir(), ".copilot", "m-loki-cache.json");
   const dest = out ?? defaultOut;
 

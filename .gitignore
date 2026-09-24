@@ -1,5 +1,13 @@
-# .env (ignored - add your secrets here)
+# Local configuration and secrets
 .env
+.env.*
+!.env.template
+*.pem
+*.key
+*.pfx
+*.p12
+*.jks
+.npmrc
 
 # Node modules
 node_modules/
@@ -8,6 +16,11 @@ relay/node_modules/
 # Build output
 dist/
 relay/dist/
+docs/build/
+docs/.docusaurus/
+coverage/
+*.log
+*.zip
 
 # OS files
 .DS_Store

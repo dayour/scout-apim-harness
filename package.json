@@ -2,25 +2,34 @@
   "name": "scout-apim-harness",
   "version": "1.0.0",
   "description": "Microsoft Scout Teams Bot integration as a standalone APIM harness service",
+  "author": "Scout APIM Harness contributors",
   "main": "electron/main.js",
   "type": "commonjs",
+  "workspaces": ["docs"],
   "scripts": {
     "start": "electron .",
     "dev": "concurrently \"npm run relay:dev\" \"electron .\"",
+    "ui:start": "node ui-server.js",
     "relay:dev": "cd relay && npm run dev",
     "relay:build": "cd relay && npm run build",
+    "docs:build": "npm -w docs run build",
+    "docs:start": "npm -w docs run start",
     "build": "npm run relay:build && electron-builder",
     "postinstall": "cd relay && npm install"
   },
   "dependencies": {
-    "adm-zip": "^0.5.16",
-    "electron-store": "^10.0.0"
+    "adm-zip": "0.6.1",
+    "dotenv": "17.4.2",
+    "electron-store": "11.0.2"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "concurrently": "^9.1.0",
-    "electron": "^33.3.0",
-    "electron-builder": "^25.1.8"
+    "@types/node": "26.6.1",
+    "concurrently": "10.0.5",
+    "electron": "44.4.1",
+    "electron-builder": "26.15.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   },
   "build": {
     "appId": "com.microsoft.scout.apim",
@@ -30,12 +39,15 @@
     },
     "files": [
       "electron/**/*",
+      "lib/**/*",
       "ui/**/*",
+      "teams-manifest/**/*",
       "relay/dist/**/*",
       "relay/package.json",
       "relay/node_modules/**/*"
     ],
     "win": {
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "appx",
@@ -44,7 +56,7 @@
       ]
     },
     "appx": {
-      "backgroundColor": "#6366F1",
+      "backgroundColor": "#00B4D8",
       "displayName": "Scout APIM Harness",
       "identityName": "ScoutAPIMHarness",
       "publisher": "CN=Microsoft Corporation",

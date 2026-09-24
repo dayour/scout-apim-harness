@@ -1,33 +1,85 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
-const Store = require('electron-store');
+const dotenv = require('dotenv');
+const { createManifestZip, isConfiguredUuid, parseRelayUrl } = require('../lib/manifest');
 
-const store = new Store();
+dotenv.config({
+  path: process.env.SCOUT_ENV_FILE || path.join(process.cwd(), '.env'),
+  quiet: true,
+});
+
+let store;
 let mainWindow;
 let relayProcess = null;
 
-const CANONICAL_RELAY_WS_URL = 'wss://relay.example.com/ws';
-const PRODUCTION_LOKI_URL = 'https://loki.example.com';
+function envValue(...names) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+function parsePort(name, fallback) {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > 65535) {
+    throw new Error(`${name} must be an integer between 1 and 65535`);
+  }
+  return value;
+}
 
 // Environment configuration
 const config = {
-  tenantId: process.env.SCOUT_TENANT_ID || '00000000-0000-0000-0000-000000000000',
-  botAppId: process.env.SCOUT_BOT_APP_ID || '00000000-0000-0000-0000-000000000000',
-  botAppPassword: process.env.SCOUT_BOT_APP_PASSWORD || '',
-  relayHost: process.env.SCOUT_RELAY_HOST || 'localhost',
-  httpPort: process.env.SCOUT_HTTP_PORT || '3978',
-  wsPort: process.env.SCOUT_WS_PORT || '8765',
-  relayWsUrl: process.env.SCOUT_RELAY_WS_URL || process.env.RELAY_WS_URL || CANONICAL_RELAY_WS_URL,
-  lokiUrl: (process.env.SCOUT_LOKI_URL || process.env.LOKI_URL || PRODUCTION_LOKI_URL).replace(/\/+$/, ''),
+  tenantId: envValue('SCOUT_TENANT_ID'),
+  botAppId: envValue('SCOUT_BOT_APP_ID'),
+  botAppPassword: envValue('SCOUT_BOT_APP_PASSWORD'),
+  relayHost: envValue('SCOUT_RELAY_HOST') || 'localhost',
+  httpPort: parsePort('SCOUT_HTTP_PORT', 3978),
+  wsPort: parsePort('SCOUT_WS_PORT', 8765),
+  relayWsUrl: envValue('SCOUT_RELAY_WS_URL', 'RELAY_WS_URL'),
+  lokiUrl: envValue('SCOUT_LOKI_URL', 'LOKI_URL').replace(/\/+$/, ''),
 };
+
+function getConfigErrors({ requirePassword = true, requireTenant = true } = {}) {
+  const errors = [];
+  if (requireTenant && !isConfiguredUuid(config.tenantId)) {
+    errors.push('SCOUT_TENANT_ID must be a non-placeholder UUID');
+  }
+  if (!isConfiguredUuid(config.botAppId)) {
+    errors.push('SCOUT_BOT_APP_ID must be a non-placeholder UUID');
+  }
+  if (requirePassword && !config.botAppPassword) {
+    errors.push('SCOUT_BOT_APP_PASSWORD is required');
+  }
+  try {
+    parseRelayUrl(config.relayWsUrl);
+  } catch (err) {
+    errors.push(err.message);
+  }
+  if (!config.lokiUrl) {
+    errors.push('SCOUT_LOKI_URL is required');
+  } else {
+    try {
+      const url = new URL(config.lokiUrl);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        errors.push('SCOUT_LOKI_URL must use http:// or https://');
+      }
+    } catch {
+      errors.push('SCOUT_LOKI_URL must be an absolute URL');
+    }
+  }
+  return errors;
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 700,
     title: 'Scout APIM Harness',
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#0d1b2a',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -35,7 +87,7 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadFile('ui/index.html');
+  mainWindow.loadFile(path.join(__dirname, '..', 'ui', 'index.html'));
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -46,6 +98,11 @@ function startRelayServer() {
   if (relayProcess) {
     console.log('[APIM] Relay server already running');
     return;
+  }
+
+  const errors = getConfigErrors();
+  if (errors.length > 0) {
+    throw new Error(`Relay configuration is incomplete: ${errors.join('; ')}`);
   }
 
   const relayScript = app.isPackaged
@@ -104,9 +161,6 @@ function stopRelayServer() {
 // IPC Handlers
 ipcMain.handle('relay:connect', async () => {
   try {
-    if (!config.botAppPassword) {
-      return { success: false, error: 'BOT_APP_PASSWORD not configured. Set SCOUT_BOT_APP_PASSWORD environment variable.' };
-    }
     startRelayServer();
     store.set('relay.autoConnect', true);
     return { success: true };
@@ -129,32 +183,19 @@ ipcMain.handle('relay:status', async () => {
   return {
     success: true,
     connected: relayProcess !== null,
-    config: {
-      relayHost: config.relayHost,
-      httpPort: config.httpPort,
-      wsPort: config.wsPort,
-      wsUrl: config.relayWsUrl,
-      lokiUrl: config.lokiUrl,
-    },
   };
 });
 
 ipcMain.handle('manifest:download', async () => {
-  const fs = require('node:fs');
-  const AdmZip = require('adm-zip');
   const { dialog } = require('electron');
 
   try {
     const manifestDir = path.join(__dirname, '..', 'teams-manifest');
-    const manifestJson = path.join(manifestDir, 'manifest.json');
-    const colorIcon = path.join(manifestDir, 'color.png');
-    const outlineIcon = path.join(manifestDir, 'outline.png');
-
-    // Create zip
-    const zip = new AdmZip();
-    zip.addLocalFile(manifestJson);
-    zip.addLocalFile(colorIcon);
-    zip.addLocalFile(outlineIcon);
+    const zip = createManifestZip({
+      botAppId: config.botAppId,
+      relayWsUrl: config.relayWsUrl,
+      manifestDir,
+    });
 
     // Prompt save location
     const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
@@ -174,29 +215,43 @@ ipcMain.handle('manifest:download', async () => {
 });
 
 ipcMain.handle('config:get', async () => {
+  const errors = getConfigErrors();
   return {
     success: true,
     config: {
-      tenantId: config.tenantId,
-      botAppId: config.botAppId,
       relayHost: config.relayHost,
       httpPort: config.httpPort,
       wsPort: config.wsPort,
-      relayWsUrl: config.relayWsUrl,
-      lokiUrl: config.lokiUrl,
-      hasPassword: !!config.botAppPassword,
+      hasTenantId: isConfiguredUuid(config.tenantId),
+      hasBotAppId: isConfiguredUuid(config.botAppId),
+      hasPassword: Boolean(config.botAppPassword),
+      hasRelayWsUrl: Boolean(config.relayWsUrl),
+      hasLokiUrl: Boolean(config.lokiUrl),
+      errors,
     },
   };
 });
 
 // App Lifecycle
-app.on('ready', () => {
-  createWindow();
+app.on('ready', async () => {
+  try {
+    const { default: Store } = await import('electron-store');
+    store = new Store();
+    createWindow();
 
-  // Auto-connect if previously connected
-  const autoConnect = store.get('relay.autoConnect', false);
-  if (autoConnect && config.botAppPassword) {
-    setTimeout(() => startRelayServer(), 2000);
+    // Auto-connect if previously connected
+    const autoConnect = store.get('relay.autoConnect', false);
+    if (autoConnect) {
+      const errors = getConfigErrors();
+      if (errors.length > 0) {
+        console.error(`[APIM] Auto-connect skipped: ${errors.join('; ')}`);
+      } else {
+        setTimeout(() => startRelayServer(), 2000);
+      }
+    }
+  } catch (err) {
+    console.error('[APIM] Failed to initialize:', err);
+    app.quit();
   }
 });
 

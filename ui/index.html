@@ -3,8 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClippyClaw Teams Bot Harness</title>
+  <title>Scout Teams Bot Harness</title>
   <style>
+    :root {
+      color-scheme: dark;
+      --cp-bg: #0d1b2a;
+      --cp-surface: #1b2838;
+      --cp-surface-soft: #24364a;
+      --cp-border: #415a77;
+      --cp-text: #f8fffe;
+      --cp-muted: #bfd4df;
+      --cp-accent: #38d5f3;
+      --cp-secondary: #a56bff;
+      --cp-success: #6bcb77;
+      --cp-warning: #ffd93d;
+      --cp-danger: #ff7f7f;
+      --cp-gradient: linear-gradient(135deg, #00b4d8 0%, #7b2ff7 100%);
+      --cp-gradient-subtle: linear-gradient(135deg, #142235 0%, #29204a 100%);
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -12,9 +30,9 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #1e1e1e;
-      color: #e0e0e0;
+      font-family: Calibri, 'Segoe UI', Aptos, sans-serif;
+      background: var(--cp-gradient-subtle);
+      color: var(--cp-text);
       padding: 24px;
       line-height: 1.6;
     }
@@ -27,18 +45,21 @@
     h1 {
       font-size: 28px;
       margin-bottom: 8px;
-      color: #fff;
+      background: var(--cp-gradient);
+      background-clip: text;
+      color: transparent;
     }
 
     .subtitle {
-      color: #888;
+      color: var(--cp-muted);
       margin-bottom: 32px;
     }
 
     .section {
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
-      border-radius: 10px;
+      background: rgba(27, 40, 56, 0.9);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      box-shadow: var(--cp-shadow);
       padding: 20px;
       margin-bottom: 20px;
     }
@@ -47,7 +68,7 @@
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 16px;
-      color: #fff;
+      color: var(--cp-text);
     }
 
     .status-card {
@@ -63,10 +84,10 @@
       flex-shrink: 0;
     }
 
-    .status-icon.connected { color: #4ade80; }
-    .status-icon.connecting { color: #fbbf24; }
-    .status-icon.disconnected { color: #888; }
-    .status-icon.error { color: #ef4444; }
+    .status-icon.connected { color: var(--cp-success); }
+    .status-icon.connecting { color: var(--cp-warning); }
+    .status-icon.disconnected { color: var(--cp-muted); }
+    .status-icon.error { color: var(--cp-danger); }
 
     .status-content {
       flex: 1;
@@ -79,12 +100,12 @@
 
     .status-subtitle {
       font-size: 13px;
-      color: #888;
+      color: var(--cp-muted);
       margin-top: 2px;
     }
 
     button {
-      background: #6366f1;
+      background: var(--cp-gradient);
       color: white;
       border: none;
       border-radius: 6px;
@@ -96,36 +117,36 @@
     }
 
     button:hover {
-      background: #4f46e5;
+      filter: brightness(1.08);
     }
 
     button:disabled {
-      background: #444;
+      background: var(--cp-surface-soft);
       cursor: not-allowed;
     }
 
     button.secondary {
-      background: #3a3a3a;
-      border: 1px solid #4a4a4a;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
     }
 
     button.secondary:hover {
-      background: #444;
+      background: var(--cp-border);
     }
 
     .error-banner {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid #ef4444;
+      background: rgba(255, 127, 127, 0.1);
+      border: 1px solid var(--cp-danger);
       border-radius: 8px;
       padding: 12px;
       margin-bottom: 16px;
-      color: #ef4444;
+      color: var(--cp-danger);
       font-size: 13px;
     }
 
     .info-text {
       font-size: 14px;
-      color: #a0a0a0;
+      color: var(--cp-muted);
       margin-bottom: 12px;
     }
 
@@ -138,11 +159,11 @@
     }
 
     .config-label {
-      color: #888;
+      color: var(--cp-muted);
     }
 
     .config-value {
-      color: #e0e0e0;
+      color: var(--cp-text);
       font-family: 'Consolas', monospace;
     }
 
@@ -157,7 +178,8 @@
     }
 
     code {
-      background: #333;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'Consolas', monospace;
@@ -165,7 +187,7 @@
     }
 
     .success-message {
-      color: #4ade80;
+      color: var(--cp-success);
       font-size: 12px;
       margin-left: 4px;
     }
@@ -173,8 +195,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>ClippyClaw Teams Bot Harness</h1>
-    <div class="subtitle">ClippyClaw Teams Bot Integration Service</div>
+    <h1>Scout Teams Bot Harness</h1>
+    <div class="subtitle">Environment-driven relay, manifest, and Teams integration service</div>
 
     <!-- Configuration Section -->
     <div class="section">
@@ -205,9 +227,8 @@
       </div>
 
       <div class="info-text">
-        The Teams Bot lets you chat with ClippyClaw from the Microsoft Teams app on any device - phone, tablet, or web browser.
-        Messages are relayed through a cloud server to your running ClippyClaw desktop instance, which processes them with full access to your tools and skills.
-        ClippyClaw desktop must be running and connected for Teams messages to be answered.
+        The Teams Bot lets you chat with Scout from the Microsoft Teams app on any device.
+        Messages are relayed to the configured Scout desktop instance, which must be running and connected to answer them.
       </div>
     </div>
 
@@ -217,7 +238,7 @@
       
       <ol>
         <li>
-          <button class="secondary" onclick="downloadManifest()">Download clippyclaw-bot.zip</button>
+          <button class="secondary" onclick="downloadManifest()">Download scout-teams-bot.zip</button>
           <span id="manifestSuccess" class="success-message" style="display: none;"></span>
         </li>
         <li>From the Teams sidebar, select <strong>Apps</strong> > <strong>Manage your apps</strong> > <strong>Upload an app</strong>.</li>
@@ -226,7 +247,7 @@
       </ol>
 
       <div class="info-text" style="margin-top: 16px;">
-        ClippyClaw appears in your Teams chat list on all your devices.
+        Scout appears in your Teams chat list on all your devices.
       </div>
     </div>
   </div>
@@ -273,15 +294,21 @@
         const { config } = result;
         document.getElementById('configGrid').innerHTML = `
           <div class="config-label">Tenant ID:</div>
-          <div class="config-value">${config.tenantId}</div>
+          <div class="config-value">${config.hasTenantId ? 'Configured' : 'NOT SET'}</div>
           <div class="config-label">Bot App ID:</div>
-          <div class="config-value">${config.botAppId}</div>
+          <div class="config-value">${config.hasBotAppId ? 'Configured' : 'NOT SET'}</div>
           <div class="config-label">Relay Host:</div>
           <div class="config-value">${config.relayHost}:${config.wsPort}</div>
           <div class="config-label">HTTP Port:</div>
           <div class="config-value">${config.httpPort}</div>
           <div class="config-label">Bot Password:</div>
           <div class="config-value">${config.hasPassword ? 'Configured' : 'NOT SET (required)'}</div>
+          <div class="config-label">Relay URL:</div>
+          <div class="config-value">${config.hasRelayWsUrl ? 'Configured' : 'NOT SET'}</div>
+          <div class="config-label">Loki URL:</div>
+          <div class="config-value">${config.hasLokiUrl ? 'Configured' : 'NOT SET'}</div>
+          <div class="config-label">Validation:</div>
+          <div class="config-value">${config.errors.length === 0 ? 'Ready' : config.errors.join('; ')}</div>
         `;
       }
     }
@@ -323,13 +350,13 @@
         if (relayUp && desktopConnected) {
           icon.className = 'status-icon connected';
           title.textContent = 'Connected';
-          subtitle.textContent = 'Relay running - ClippyClaw desktop client is connected';
+          subtitle.textContent = 'Relay running - Scout desktop client is connected';
           btn.textContent = 'Relay Online';
           btn.disabled = true;
         } else if (relayUp) {
           icon.className = 'status-icon connected';
           title.textContent = 'Relay Online';
-          subtitle.textContent = 'HTTP relay running on :3978, waiting for ClippyClaw desktop connection on :8765';
+          subtitle.textContent = 'Relay running and waiting for a Scout desktop connection';
           btn.textContent = 'Relay Online';
           btn.disabled = true;
         } else {
@@ -343,7 +370,7 @@
         if (connected) {
           icon.className = 'status-icon connected';
           title.textContent = 'Connected';
-          subtitle.textContent = 'Relay connected - Teams messages are forwarded to ClippyClaw';
+          subtitle.textContent = 'Relay connected - Teams messages are forwarded to Scout';
           btn.textContent = 'Disconnect';
         } else {
           icon.className = 'status-icon disconnected';
@@ -385,8 +412,8 @@
       if (isBrowser) {
         // In browser mode, trigger a direct zip download via a temporary anchor element
         const a = document.createElement('a');
-        a.href = '/ui/clippyclaw-bot.zip';
-        a.download = 'clippyclaw-bot.zip';
+        a.href = '/manifest.zip';
+        a.download = 'scout-teams-bot.zip';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -410,7 +437,7 @@
     // Initialize
     if (isBrowser) {
       // Show browser mode indicator
-      document.title = 'ClippyClaw Teams Bot Harness (Browser Mode)';
+      document.title = 'Scout Teams Bot Harness (Browser Mode)';
       const header = document.querySelector('h1');
       if (header) header.textContent += ' — Browser Mode';
     }
